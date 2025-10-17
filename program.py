@@ -4,7 +4,7 @@ import numpy as np #array
 import csv
 import os
 from datetime import datetime
-
+"TESTTTTTTTWUDHWHUWHDH"
 video_capture = cv2.VideoCapture(0) #input from default webcam
 '''
 pavi_image = face_recognition.load_image_file("images/pavi.jpg")

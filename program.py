@@ -1,0 +1,119 @@
+import face_recognition            #change to loop to detect multiple faces, add time module to record time and capture image from webcam, 
+import cv2 #webcam
+import numpy as np #array
+import csv
+import os
+from datetime import datetime
+
+video_capture = cv2.VideoCapture(0) #input from default webcam
+'''
+pavi_image = face_recognition.load_image_file("images/pavi.jpg")
+pavi_encoding = face_recognition.face_encodings(pavi_image)[0]
+
+walter_image = face_recognition.load_image_file("images/walter.webp")
+walter_encoding = face_recognition.face_encodings(walter_image)[0]  
+
+brad_image = face_recognition.load_image_file("images/brad.webp")
+brad_encoding = face_recognition.face_encodings(brad_image)[0] 
+
+
+known_face_encodings = [
+    pavi_encoding,
+    walter_encoding,
+    brad_encoding   
+]
+
+known_face_names = [
+    "Pavithran",
+    "Walter White",
+    "Brad Pitt"
+]
+
+#OR Can use this method to load multiple images from a directory
+# path = 'images'
+# known_face_encodings = []
+# for filename in os.listdir(path):
+#     if filename.endswith(".jpg") or filename.endswith(".webp"):
+#         image = face_recognition.load_image_file(os.path.join(path, filename))
+#         encoding = face_recognition.face_encodings(image)[0]
+#         known_face_encodings.append(encoding)
+
+students = known_face_names.copy()
+'''
+# Folder containing all your images
+path = "images"
+
+known_face_encodings = []
+known_face_names = []
+
+# Loop through all files in the folder
+for filename in os.listdir(path):
+    if filename.lower().endswith((".jpg", ".jpeg", ".png", ".webp")):    #jpg, webp
+        # Get the full image path
+        image_path = os.path.join(path, filename)
+
+        # Load the image
+        image = face_recognition.load_image_file(image_path)
+
+        # Get encodings for the face(s) in the image
+        encodings = face_recognition.face_encodings(image)
+
+        if len(encodings) > 0:
+            encoding = encodings[0]  # Use the first face found
+            known_face_encodings.append(encoding)
+
+            # Use the file name (without extension) as the person's name
+            name = os.path.splitext(filename)[0]
+            known_face_names.append(name)
+            print(f"Loaded encoding for: {name}")
+        else:
+            print(f"⚠️ No face found in {filename}, skipping...")
+
+# Copy list if you need a separate 'students' list
+students = known_face_names.copy()
+ 
+face_locations = []
+face_encodings = []
+face_names = []
+s=True
+
+now = datetime.now()
+current_date = now.strftime("%Y-%m-%d")
+
+
+file = open(current_date+".csv", "a+", newline="") #write method, newline no value
+lnwriter = csv.writer(file) #used when writing into csv file
+
+while True:
+    _, frame = video_capture.read() #read the frame from webcam
+    small_frame = cv2.resize(frame, (0,0), fx=0.25, fy=0.25) #resize frame to 1/4th size for faster processing
+    #rgb_small_frame = small_frame[:,:,::-1] 
+    rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB) #convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+
+    if s: 
+        face_locations = face_recognition.face_locations(rgb_small_frame) #detect all faces in the frame
+        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations) #get the encodings of the detected faces n store data
+        face_names = []
+        for face_encoding in face_encodings:
+            matches = face_recognition.compare_faces(known_face_encodings, face_encoding) #compare the detected faces with known faces
+            name = ""
+            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding) #get the distance between the detected face and known faces
+            best_match_index = np.argmin(face_distances) #get the index of the best match
+            if matches[best_match_index]:
+                name = known_face_names[best_match_index] #get the name of the match if exists
+
+            face_names.append(name) 
+            if name in known_face_names:
+                if name in students: #check if the name is already in the list
+                    students.remove(name) #remove the name from the list to avoid multiple entries
+                    print(students) 
+                    current_time = now.strftime("%I:%M:%S %p")
+                    lnwriter.writerow([name, " "+current_time]) #write the name and time into the csv file
+
+    cv2.imshow("Attendance System", frame) #display the frame
+    if cv2.waitKey(1) & 0xFF == ord('q'): #press 'q' to quit and 0xFF for 64 bit systems 
+        break
+
+video_capture.release() #release the webcam
+cv2.destroyAllWindows() #close all windows
+file.close() #close the csv file

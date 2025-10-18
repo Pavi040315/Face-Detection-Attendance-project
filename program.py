@@ -1,4 +1,4 @@
-import face_recognition            #change to loop to detect multiple faces, add time module to record time and capture image from webcam, 
+import face_recognition            # add capture image from webcam, 
 import cv2 #webcam
 import numpy as np #array
 import csv
@@ -7,6 +7,7 @@ from datetime import datetime
 import time
 
 video_capture = cv2.VideoCapture(0) #input from default webcam
+
 '''
 pavi_image = face_recognition.load_image_file("images/pavi.jpg")
 pavi_encoding = face_recognition.face_encodings(pavi_image)[0]
@@ -67,7 +68,7 @@ for filename in os.listdir(path):
             known_face_names.append(name)
             print(f"Loaded encoding for: {name}")
         else:
-            print(f"⚠️ No face found in {filename}, skipping...")
+            print(f"No face found in {filename}, skipping...")
 
 # Copy list if you need a separate 'students' list
 students = known_face_names.copy()
@@ -92,40 +93,64 @@ if os.path.exists(current_date + ".csv"):
             if len(row) > 0:
                 existing_names.add(row[0])  # First column is the name
 
-
+recently_logged = set()
+print("Press Q to quit.") 
 while True: 
 
-    _, frame = video_capture.read() #read the frame from webcam
-    small_frame = cv2.resize(frame, (0,0), fx=0.25, fy=0.25) #resize frame to 1/4th size for faster processing
-    #rgb_small_frame = small_frame[:,:,::-1] 
-    rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB) #convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
-
-    if s: 
+        _, frame = video_capture.read() #read the frame from webcam
+        small_frame = cv2.resize(frame, (0,0), fx=0.25, fy=0.25) #resize frame to 1/4th size for faster processing
+        rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB) #convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
+        
+        
         face_locations = face_recognition.face_locations(rgb_small_frame) #detect all faces in the frame
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations) #get the encodings of the detected faces n store data
         face_names = []
-        for face_encoding in face_encodings:
-            matches = face_recognition.compare_faces(known_face_encodings, face_encoding) #compare the detected faces with known faces
-            name = ""
-            face_distances = face_recognition.face_distance(known_face_encodings, face_encoding) #get the distance between the detected face and known faces
-            best_match_index = np.argmin(face_distances) #get the index of the best match
-            if matches[best_match_index]:
-                name = known_face_names[best_match_index] #get the name of the match if exists
-
-            if name in known_face_names:
-                if name not in existing_names:  # Only add if not already marked today
-                    existing_names.add(name)
-                    print(f"Marked attendance for {name}")
-                    current_time = datetime.now().strftime("%I:%M:%S %p")
-                    lnwriter.writerow([name, current_time])
-                else: 
-                    s=False
-                    print(f"Attendance already marked for {name.upper()} at {datetime.now():%H:%M %p}.")
-            print("Press Q to quit.") 
-
-    cv2.imshow("Attendance System", frame) 
-    if cv2.waitKey(1) & 0xFF == ord('q'): 
-        break
+        
+        if s:    
+            for face_encoding in face_encodings:
+                matches = face_recognition.compare_faces(known_face_encodings, face_encoding) #compare the detected faces with known faces
+                name = ""
+                face_distances = face_recognition.face_distance(known_face_encodings, face_encoding) #get the distance between the detected face and known faces
+                best_match_index = np.argmin(face_distances) #get the index of the best match
+                
+                if matches[best_match_index]:
+                    name = known_face_names[best_match_index] #get the name of the match if exists
+                face_names.append(name)
+                
+                if name in known_face_names:
+                    if name not in existing_names:  # Only add if not already marked today
+                        existing_names.add(name)
+                        print(f"Marked attendance for {name}")
+                        current_time = datetime.now().strftime("%I:%M:%S %p")
+                        lnwriter.writerow([name, current_time])
+                    else: 
+                        if name not in recently_logged:
+                            print(f"Attendance already marked for {name.upper()} at {datetime.now():%I:%M %p}.")
+                            recently_logged.add(name)
+        
+        
+        for (top, right, bottom, left), name in zip(face_locations, face_names): 
+            top *= 4
+            right *= 4
+            bottom *= 4
+            left *= 4
+    
+            cv2.rectangle(frame, (left, top), (right, bottom), (0,255,0), 2)  
+            cv2.rectangle(frame, (left, bottom), (right, bottom), (0,255,0), cv2.FILLED) 
+            font = cv2.FONT_HERSHEY_SIMPLEX 
+            cv2.putText(frame, name, (left, bottom), font, 1.0, (255,255,255),1)
+            color = (0, 255, 0) 
+            
+            if name in known_face_names: 
+                color = (0, 255, 0)
+            else: 
+                color = (0, 0, 255)
+                           
+            cv2.rectangle(frame, (left, top), (right, bottom), color, 2) 
+               
+        cv2.imshow("Attendance System", frame) 
+        if cv2.waitKey(1) & 0xFF == ord('q'): 
+            break
     
 
 video_capture.release() 

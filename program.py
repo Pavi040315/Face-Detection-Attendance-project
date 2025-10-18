@@ -4,6 +4,7 @@ import numpy as np #array
 import csv
 import os
 from datetime import datetime
+import time
 
 video_capture = cv2.VideoCapture(0) #input from default webcam
 '''
@@ -40,9 +41,8 @@ known_face_names = [
 
 students = known_face_names.copy()
 '''
-# Folder containing all your images
-path = "images"
 
+path = "images"
 known_face_encodings = []
 known_face_names = []
 
@@ -75,7 +75,7 @@ students = known_face_names.copy()
 face_locations = []
 face_encodings = []
 face_names = []
-s=True
+s=True 
 
 now = datetime.now()
 current_date = now.strftime("%Y-%m-%d")
@@ -84,7 +84,17 @@ current_date = now.strftime("%Y-%m-%d")
 file = open(current_date+".csv", "a+", newline="") #write method, newline no value
 lnwriter = csv.writer(file) #used when writing into csv file
 
-while True:
+existing_names = set()
+if os.path.exists(current_date + ".csv"):
+    with open(current_date + ".csv", "r") as f:
+        reader = csv.reader(f)
+        for row in reader:
+            if len(row) > 0:
+                existing_names.add(row[0])  # First column is the name
+
+
+while True: 
+
     _, frame = video_capture.read() #read the frame from webcam
     small_frame = cv2.resize(frame, (0,0), fx=0.25, fy=0.25) #resize frame to 1/4th size for faster processing
     #rgb_small_frame = small_frame[:,:,::-1] 
@@ -102,17 +112,21 @@ while True:
             if matches[best_match_index]:
                 name = known_face_names[best_match_index] #get the name of the match if exists
 
-            face_names.append(name) 
             if name in known_face_names:
-                if name in students: #check if the name is already in the list
-                    students.remove(name) #remove the name from the list to avoid multiple entries
-                    print(students) 
-                    current_time = now.strftime("%I:%M:%S %p")
-                    lnwriter.writerow([name, " "+current_time]) #write the name and time into the csv file
+                if name not in existing_names:  # Only add if not already marked today
+                    existing_names.add(name)
+                    print(f"Marked attendance for {name}")
+                    current_time = datetime.now().strftime("%I:%M:%S %p")
+                    lnwriter.writerow([name, current_time])
+                else: 
+                    s=False
+                    print(f"Attendance already marked for {name.upper()} at {datetime.now():%H:%M %p}.")
+            print("Press Q to quit.") 
 
     cv2.imshow("Attendance System", frame) #display the frame
     if cv2.waitKey(1) & 0xFF == ord('q'): #press 'q' to quit and 0xFF for 64 bit systems 
         break
+    
 
 video_capture.release() #release the webcam
 cv2.destroyAllWindows() #close all windows

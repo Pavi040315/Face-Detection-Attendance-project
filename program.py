@@ -123,11 +123,11 @@ while True:
                     print(f"Attendance already marked for {name.upper()} at {datetime.now():%H:%M %p}.")
             print("Press Q to quit.") 
 
-    cv2.imshow("Attendance System", frame) #display the frame
-    if cv2.waitKey(1) & 0xFF == ord('q'): #press 'q' to quit and 0xFF for 64 bit systems 
+    cv2.imshow("Attendance System", frame) 
+    if cv2.waitKey(1) & 0xFF == ord('q'): 
         break
     
 
-video_capture.release() #release the webcam
-cv2.destroyAllWindows() #close all windows
-file.close() #close the csv file
+video_capture.release() 
+cv2.destroyAllWindows()
+file.close()

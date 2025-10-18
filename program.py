@@ -95,6 +95,7 @@ if os.path.exists(current_date + ".csv"):
 
 recently_logged = set()
 print("Press Q to quit.") 
+
 while True: 
 
         _, frame = video_capture.read() #read the frame from webcam

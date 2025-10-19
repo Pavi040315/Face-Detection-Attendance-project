@@ -1,5 +1,4 @@
 # Face Detection Attendance System
-[![Ask DeepWiki](https://devin.ai/assets/askdeepwiki.png)](https://deepwiki.com/Pavi040315/Face-Detection-Attendance-project)
 
 This project is an automated attendance system that uses facial recognition. It captures video from a webcam, detects faces, identifies known individuals, and records their attendance in a daily CSV log file.
 

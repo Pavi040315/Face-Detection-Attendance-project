@@ -1,10 +1,11 @@
 import face_recognition            # add audio notification upon attendance marking
-import cv2 #webcam
+import cv2 #webcam                  # unrecognized face audio notification 
 import numpy as np 
 import csv
 import os
 from datetime import datetime
 import time
+import winsound #audio notification
 
 
 # ----------Webcam setup----------
@@ -125,14 +126,13 @@ while True:
                         print(f"Saved snapshot for {name} at {snapshot_filename}")
                         snapshot_url = f"file:///{os.path.abspath(snapshot_filename).replace(os.sep, '/')}"
                         lnwriter.writerow([name, current_time, snapshot_url])
-
+                        winsound.PlaySound("Attendance recorded.wav", winsound.SND_FILENAME | winsound.SND_ASYNC) #audio notification without blocking webcam
+                
                     else: 
-                        if name not in recently_logged:
-                            print(f"Attendance already marked for {name.upper()}.")
-                            recently_logged.add(name)
-                            break
-        
-        
+                        if name in existing_names and time.time() % 3 < 2:      # Show message for 2 seconds every 3 seconds
+                            cv2.putText(frame, "Attendance recorded", (50, 50), cv2.QT_FONT_NORMAL, 1.0, (0,0,255),2)
+
+                
         # ----------Display box around face----------
         for (top, right, bottom, left), name in zip(face_locations, face_names): 
             top *= 2
@@ -157,6 +157,7 @@ while True:
         if cv2.waitKey(1) & 0xFF == ord('q'): 
             break
     
+
 # ----------Cleanup----------
 video_capture.release() 
 cv2.destroyAllWindows()

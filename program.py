@@ -1,12 +1,15 @@
 import face_recognition            # add capture image from webcam, 
 import cv2 #webcam
-import numpy as np #array
+import numpy as np 
 import csv
 import os
 from datetime import datetime
 import time
 
+
 video_capture = cv2.VideoCapture(0) #input from default webcam
+video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
 '''
 pavi_image = face_recognition.load_image_file("images/pavi.jpg")
@@ -44,8 +47,13 @@ students = known_face_names.copy()
 '''
 
 path = "images"
+snapshots_path = "snapshots"
+os.makedirs(snapshots_path, exist_ok=True)
+
+
 known_face_encodings = []
 known_face_names = []
+
 
 # Loop through all files in the folder
 for filename in os.listdir(path):
@@ -59,24 +67,26 @@ for filename in os.listdir(path):
         # Get encodings for the face(s) in the image
         encodings = face_recognition.face_encodings(image)
 
-        if len(encodings) > 0:
+        if len(encodings) > 0: # Check if at least one face encoding is found
             encoding = encodings[0]  # Use the first face found
-            known_face_encodings.append(encoding)
+            known_face_encodings.append(encoding) 
 
             # Use the file name (without extension) as the person's name
-            name = os.path.splitext(filename)[0]
-            known_face_names.append(name)
+            name = os.path.splitext(filename)[0] 
+            known_face_names.append(name) 
             print(f"Loaded encoding for: {name}")
         else:
             print(f"No face found in {filename}, skipping...")
 
+
 # Copy list if you need a separate 'students' list
 students = known_face_names.copy()
+ 
  
 face_locations = []
 face_encodings = []
 face_names = []
-s=True 
+
 
 now = datetime.now()
 current_date = now.strftime("%Y-%m-%d")
@@ -84,6 +94,7 @@ current_date = now.strftime("%Y-%m-%d")
 
 file = open(current_date+".csv", "a+", newline="") #write method, newline no value
 lnwriter = csv.writer(file) #used when writing into csv file
+
 
 existing_names = set()
 if os.path.exists(current_date + ".csv"):
@@ -93,13 +104,16 @@ if os.path.exists(current_date + ".csv"):
             if len(row) > 0:
                 existing_names.add(row[0])  # First column is the name
 
+
 recently_logged = set()
-print("Press Q to quit.") 
+print("Press Q to quit.")
+s = True
+
 
 while True: 
 
         _, frame = video_capture.read() #read the frame from webcam
-        small_frame = cv2.resize(frame, (0,0), fx=0.25, fy=0.25) #resize frame to 1/4th size for faster processing
+        small_frame = cv2.resize(frame, (0,0), fx=0.5, fy=0.5) #resize frame to 1/4th size for faster processing
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB) #convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         
         
@@ -123,23 +137,38 @@ while True:
                         existing_names.add(name)
                         print(f"Marked attendance for {name}")
                         current_time = datetime.now().strftime("%I:%M:%S %p")
-                        lnwriter.writerow([name, current_time])
+
+                        top, right, bottom, left = face_locations[face_encodings.index(face_encoding)]
+
+                        top *= 2
+                        right *= 2     
+                        bottom *= 2
+                        left *= 2
+
+                        face_crop = frame[top:bottom, left:right]
+                        
+                        snapshot_filename = os.path.join(snapshots_path, f"{name}_{current_date}_{current_time.replace(':', '-')}.jpg")
+                        cv2.imwrite(snapshot_filename, face_crop)
+                        print(f"Saved snapshot for {name} at {snapshot_filename}")
+
+                        lnwriter.writerow([name, current_time, snapshot_filename])
                     else: 
                         if name not in recently_logged:
-                            print(f"Attendance already marked for {name.upper()} at {datetime.now():%I:%M %p}.")
+                            print(f"Attendance already marked for {name.upper()}.")
                             recently_logged.add(name)
+                            break
         
         
         for (top, right, bottom, left), name in zip(face_locations, face_names): 
-            top *= 4
-            right *= 4
-            bottom *= 4
-            left *= 4
-    
+            top *= 2
+            right *= 2
+            bottom *= 2
+            left *= 2
+
             cv2.rectangle(frame, (left, top), (right, bottom), (0,255,0), 2)  
             cv2.rectangle(frame, (left, bottom), (right, bottom), (0,255,0), cv2.FILLED) 
-            font = cv2.FONT_HERSHEY_SIMPLEX 
-            cv2.putText(frame, name, (left, bottom), font, 1.0, (255,255,255),1)
+            font = cv2.QT_FONT_NORMAL
+            cv2.putText(frame, name, (left, top), font, 1.0, (255,255,255),2)
             color = (0, 255, 0) 
             
             if name in known_face_names: 

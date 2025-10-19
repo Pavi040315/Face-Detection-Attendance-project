@@ -1,5 +1,5 @@
-import face_recognition            # add audio notification upon attendance marking
-import cv2 #webcam                  # unrecognized face audio notification 
+import face_recognition           
+import cv2 #webcam                  
 import numpy as np 
 import csv
 import os
@@ -150,9 +150,11 @@ while True:
                 color = (0, 255, 0)
             else: 
                 color = (0, 0, 255)
-                           
+                cv2.putText(frame, "Unknown", (left, top), font, 1.0, (255,255,255),2)
+
             cv2.rectangle(frame, (left, top), (right, bottom), color, 2) 
-               
+
+
         cv2.imshow("Attendance System", frame) 
         if cv2.waitKey(1) & 0xFF == ord('q'): 
             break

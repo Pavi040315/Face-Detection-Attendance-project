@@ -1,4 +1,4 @@
-import face_recognition            # add capture image from webcam, 
+import face_recognition            # add audio notification upon attendance marking
 import cv2 #webcam
 import numpy as np 
 import csv
@@ -7,50 +7,19 @@ from datetime import datetime
 import time
 
 
-video_capture = cv2.VideoCapture(0) #input from default webcam
+# ----------Webcam setup----------
+video_capture = cv2.VideoCapture(0) 
 video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-'''
-pavi_image = face_recognition.load_image_file("images/pavi.jpg")
-pavi_encoding = face_recognition.face_encodings(pavi_image)[0]
 
-walter_image = face_recognition.load_image_file("images/walter.webp")
-walter_encoding = face_recognition.face_encodings(walter_image)[0]  
-
-brad_image = face_recognition.load_image_file("images/brad.webp")
-brad_encoding = face_recognition.face_encodings(brad_image)[0] 
-
-
-known_face_encodings = [
-    pavi_encoding,
-    walter_encoding,
-    brad_encoding   
-]
-
-known_face_names = [
-    "Pavithran",
-    "Walter White",
-    "Brad Pitt"
-]
-
-#OR Can use this method to load multiple images from a directory
-# path = 'images'
-# known_face_encodings = []
-# for filename in os.listdir(path):
-#     if filename.endswith(".jpg") or filename.endswith(".webp"):
-#         image = face_recognition.load_image_file(os.path.join(path, filename))
-#         encoding = face_recognition.face_encodings(image)[0]
-#         known_face_encodings.append(encoding)
-
-students = known_face_names.copy()
-'''
-
+# ----------Paths----------
 path = "images"
 snapshots_path = "snapshots"
 os.makedirs(snapshots_path, exist_ok=True)
 
 
+# ----------Load known faces----------
 known_face_encodings = []
 known_face_names = []
 
@@ -79,15 +48,16 @@ for filename in os.listdir(path):
             print(f"No face found in {filename}, skipping...")
 
 
-# Copy list if you need a separate 'students' list
-students = known_face_names.copy()
+students = known_face_names.copy()  # Copy list if you need a separate 'students' list
+
  
- 
+# ----------Initialize variables---------- 
 face_locations = []
 face_encodings = []
 face_names = []
 
 
+# ----------Attendance CSV setup----------
 now = datetime.now()
 current_date = now.strftime("%Y-%m-%d")
 
@@ -107,9 +77,10 @@ if os.path.exists(current_date + ".csv"):
 
 recently_logged = set()
 print("Press Q to quit.")
+
+
+# ----------Main loop----------
 s = True
-
-
 while True: 
 
         _, frame = video_capture.read() #read the frame from webcam
@@ -132,6 +103,8 @@ while True:
                     name = known_face_names[best_match_index] #get the name of the match if exists
                 face_names.append(name)
                 
+
+                # ----------Attendance marking----------
                 if name in known_face_names:
                     if name not in existing_names:  # Only add if not already marked today
                         existing_names.add(name)
@@ -150,8 +123,9 @@ while True:
                         snapshot_filename = os.path.join(snapshots_path, f"{name}_{current_date}_{current_time.replace(':', '-')}.jpg")
                         cv2.imwrite(snapshot_filename, face_crop)
                         print(f"Saved snapshot for {name} at {snapshot_filename}")
+                        snapshot_url = f"file:///{os.path.abspath(snapshot_filename).replace(os.sep, '/')}"
+                        lnwriter.writerow([name, current_time, snapshot_url])
 
-                        lnwriter.writerow([name, current_time, snapshot_filename])
                     else: 
                         if name not in recently_logged:
                             print(f"Attendance already marked for {name.upper()}.")
@@ -159,6 +133,7 @@ while True:
                             break
         
         
+        # ----------Display box around face----------
         for (top, right, bottom, left), name in zip(face_locations, face_names): 
             top *= 2
             right *= 2
@@ -182,7 +157,7 @@ while True:
         if cv2.waitKey(1) & 0xFF == ord('q'): 
             break
     
-
+# ----------Cleanup----------
 video_capture.release() 
 cv2.destroyAllWindows()
 file.close()
